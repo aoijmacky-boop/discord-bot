@@ -18,10 +18,7 @@ async def on_ready():
 
 @client.event
 async def on_message(message):
-    # Botのメッセージは無視
-    if message.author.bot:
-        return
-
+ 
     # 空メッセージ防止
     if not message.content:
         return
@@ -64,6 +61,34 @@ async def on_message(message):
 
     except Exception as e:
         print(f"エラー: {e}")
+
+@client.event
+async def on_voice_state_update(member, before, after):
+    vc = discord.utils.get(client.voice_clients, guild=member.guild)
+
+    # 入室時
+    if after.channel is not None and before.channel is None:
+        if vc is None:
+            try:
+                await after.channel.connect()
+                print("VCに接続しました")
+            except Exception as e:
+                print(f"接続エラー: {e}")
+
+    # 退出チェック（遅延させる）
+    if before.channel is not None:
+        await asyncio.sleep(5)  # ←これ重要（5秒待つ）
+
+        vc = discord.utils.get(client.voice_clients, guild=member.guild)
+        if vc is None:
+            return
+
+        channel = vc.channel
+
+        # bot以外いないなら退出
+        if len([m for m in channel.members if not m.bot]) == 0:
+            await vc.disconnect()
+            print("VCから退出しました")
 
 # ===== 起動 =====
 client.run(TOKEN)
